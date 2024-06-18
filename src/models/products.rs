@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::controllers::{
     products::{ProductModify, ProductModifyBuilder},
     Entity,
@@ -5,7 +7,7 @@ use crate::controllers::{
 
 use super::MetaData;
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
+use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Product {
     /// Unique identifier for the resource.
@@ -60,7 +62,7 @@ pub struct Product {
     /// Shows if the product can be bought.
     pub purchasable: bool,
     /// Amount of sales.
-    pub total_sales: i32,
+    pub total_sales: total_sales,
     /// If the product is virtual. Default is false.
     #[serde(rename = "virtual")]
     pub is_virtual: bool,
@@ -284,4 +286,62 @@ pub struct ProductDefaultAttribute {
     pub name: String,
     /// Selected attribute term name.
     pub option: String,
+}
+
+
+#[derive(Debug, Clone, Serialize)]
+enum total_sales {
+    Int(i32),
+    Str(String),
+}
+
+impl<'de> Deserialize<'de> for total_sales {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct IdVisitor;
+
+        impl<'de> Visitor<'de> for IdVisitor {
+            type Value = total_sales;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an integer or a string")
+            }
+
+            fn visit_i32<E>(self, value: i32) -> Result<total_sales, E>
+            where
+                E: de::Error,
+            {
+                Ok(total_sales::Int(value))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<total_sales, E>
+            where
+                E: de::Error,
+            {
+                if value <= i32::MAX as u64 {
+                    Ok(total_sales::Int(value as i32))
+                } else {
+                    Err(de::Error::custom("u64 is too large for i32"))
+                }
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<total_sales, E>
+            where
+                E: de::Error,
+            {
+                Ok(total_sales::Str(value.to_string()))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<total_sales, E>
+            where
+                E: de::Error,
+            {
+                Ok(total_sales::Str(value))
+            }
+        }
+
+        deserializer.deserialize_any(IdVisitor)
+    }
 }
