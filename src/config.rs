@@ -33,4 +33,6 @@ pub struct Woo {
     pub cs: String,
     /// Host URL
     pub host: String,
+    /// Accept Invalid / Self Signed certificated  (useful for localhost development and debug)
+    pub danger_accept_invalid_certs: Option<bool>
 }

@@ -55,7 +55,10 @@ impl ApiClient {
     pub fn new(config: &Config) -> Result<Self> {
         let ck = config.woo.ck.to_owned();
         let cs = config.woo.cs.to_owned();
-        let client = reqwest::Client::builder().gzip(true).build()?;
+        let danger_accept_invalid_certs = config.woo.danger_accept_invalid_certs.unwrap_or(false);
+        
+        let client = reqwest::Client::builder().danger_accept_invalid_certs(danger_accept_invalid_certs).gzip(true).build()?;
+
         let base_url = match url::Url::parse(&config.woo.host) {
             Ok(url) => url.join("/wp-json/wc/v3/")?,
             Err(_) => {
